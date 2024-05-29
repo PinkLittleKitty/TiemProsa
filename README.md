@@ -1,6 +1,10 @@
-# ProseZeit - Widget de Reloj Literario para Android
+# TiemProsa - Widget de Reloj Literario para Android
 
-Inspirado por (es decir, completamente copiado de) [tjaap](https://www.instructables.com/member/tjaap/) y su [Reloj Literario hecho con un Kindle](https://www.instructables.com/id/Literary-Clock-Made-From-E-reader/) (y [obvia y descarada promoción](https://hackaday.com/2018/08/01/kindle-tells-the-time-by-quoting-literature/)), *ProseZeit* es un widget para Android (los que puedes poner en tu pantalla de inicio) que hace exactamente lo mismo: mostrar la hora actual citando literatura.
+
+# Esta es una traducción a español y continuación de desarrollo de [ProseZeit](https://github.com/sgreg/ProseZeit), por sgreg.
+
+
+Inspirado por (es decir, completamente copiado de) [tjaap](https://www.instructables.com/member/tjaap/) y su [Reloj Literario hecho con un Kindle](https://www.instructables.com/id/Literary-Clock-Made-From-E-reader/) (y [obvia y descarada promoción](https://hackaday.com/2018/08/01/kindle-tells-the-time-by-quoting-literature/)), *TiemProsa* es un widget para Android (los que puedes poner en tu pantalla de inicio) que hace exactamente lo mismo: mostrar la hora actual citando literatura.
 
 <img alt='13:00' src='images/1300.jpg' width=400 />
 
@@ -24,20 +28,20 @@ El código de Android es un proyecto normal de Android Studio y se puede importa
 
 Ten en cuenta que puedes recibir un error de "Actividad predeterminada no encontrada" al intentar ejecutar la aplicación desde Android Studio; edita la configuración de ejecución (*Run* -> *Edit Configurations...*) y cambia las *Opciones de inicio* de "Actividad predeterminada" a "Nada".
 
-Dado que ProseZeit es solo un widget, no se instalará ninguna aplicación real. Para abrir el widget, mantén presionada la pantalla de inicio, lo que debería abrir un menú para seleccionar "Widgets". Desplázate por la lista de widgets disponibles hasta encontrar ProseZeit. Arrástralo a tu pantalla de inicio, y tadaa, sabes la hora.
+Dado que TiemProsa es solo un widget, no se instalará ninguna aplicación real. Para abrir el widget, mantén presionada la pantalla de inicio, lo que debería abrir un menú para seleccionar "Widgets". Desplázate por la lista de widgets disponibles hasta encontrar TiemProsa. Arrástralo a tu pantalla de inicio, y tadaa, sabes la hora.
 
 <img alt='captura de pantalla' src='images/screenshot.jpg' width=540 />
 
 ## Solo ejecutando la aplicación
 
-<a href='https://play.google.com/store/apps/details?id=fi.craplab.prosezeit'><img alt='Consíguelo en Google Play' src='images/google-play-badge.png' width=200/></a>
+<a href=''><img alt='Consíguelo en Google Play' src='images/google-play-badge.png' width=200/></a>
 
 El widget está disponible para pruebas beta abiertas en la tienda Google Play.
 
 Aunque no tengo ninguna intención real de convertir este proyecto en un widget de reloj serio y completamente funcional (ver *Problemas conocidos* a continuación), pensé que aún podría ser útil hacerlo fácilmente accesible, por si alguien tiene curiosidad. Quiero decir, claro, puedes construirlo e instalarlo tú mismo con Android Studio, pero eso no es del gusto de todos.
 
 ### Únete a las pruebas beta abiertas
-Aproveché esta oportunidad para echar un vistazo a las pruebas beta abiertas. No estoy completamente seguro de si tiene mucho sentido, considerando que actualmente no planeo ningún desarrollo adicional. Pero supongo que permite dejar comentarios o no sé. Bueno, [siéntete libre de unirte](https://play.google.com/apps/testing/fi.craplab.prosezeit) por diversión ¯\\\_(ツ)\_/¯
+Aproveché esta oportunidad para echar un vistazo a las pruebas beta abiertas. No estoy completamente seguro de si tiene mucho sentido, considerando que actualmente no planeo ningún desarrollo adicional. Pero supongo que permite dejar comentarios o no sé. Bueno, [siéntete libre de unirte]() por diversión ¯\\\_(ツ)\_/¯
 
 <img alt='23:56' src='images/2356.jpg' width=400 />
 
