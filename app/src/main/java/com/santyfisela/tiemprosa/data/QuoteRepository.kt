@@ -19,7 +19,7 @@ class QuoteRepository(private val context: Context) {
             val reader = BufferedReader(InputStreamReader(inputStream))
             
             quotes = reader.useLines { lines ->
-                lines.drop(1) // Skip header
+                lines.drop(1)
                     .map { line -> parseCsvLine(line) }
                     .filterNotNull()
                     .toList()

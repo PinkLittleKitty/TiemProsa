@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.sp
 import androidx.work.*
 import com.santyfisela.tiemprosa.data.Quote
 import com.santyfisela.tiemprosa.data.QuoteRepository
+
 import com.santyfisela.tiemprosa.ui.theme.TiemProsaTheme
 import com.santyfisela.tiemprosa.utils.TextUtils
 import com.santyfisela.tiemprosa.worker.WidgetUpdateWorker
@@ -176,13 +177,17 @@ fun LiteraryClockScreen(modifier: Modifier = Modifier) {
             }
         }
         
-        Button(
-            onClick = { 
-                currentQuote = repository.getQuoteForCurrentHour()
-            },
-            modifier = Modifier.padding(top = 16.dp)
+        Row(
+            modifier = Modifier.padding(top = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text("Nueva cita")
+            Button(
+                onClick = { 
+                    currentQuote = repository.getQuoteForCurrentHour()
+                }
+            ) {
+                Text("Nueva cita")
+            }
         }
         
         Text(

@@ -50,15 +50,9 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     
-    // Widget support
-    implementation("androidx.glance:glance-appwidget:1.1.0")
-    implementation("androidx.glance:glance-material3:1.1.0")
-    
-    // ViewModel and LiveData
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.1")
     implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.9.1")
     
-    // Work Manager for periodic updates
     implementation("androidx.work:work-runtime-ktx:2.9.1")
     
     testImplementation(libs.junit)

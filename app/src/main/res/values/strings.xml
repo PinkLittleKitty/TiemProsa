@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">TiemProsa</string>
-    <string name="widget_description">Reloj literario con citas de autores latinoamericanos. Toca para ver detalles.</string>
+    <string name="widget_description">Reloj literario con citas de libros.</string>
+    <string name="widget_quote_unavailable">No hay citas disponibles</string>
 </resources>

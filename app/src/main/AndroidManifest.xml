@@ -28,7 +28,7 @@
         </activity>
 
         <receiver
-            android:name=".widget.LiteraryClockWidgetProvider"
+            android:name=".widget.LiteraryClockWidget"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />

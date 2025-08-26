@@ -1,155 +1,448 @@
 package com.santyfisela.tiemprosa.widget
 
+import android.app.PendingIntent
+import android.appwidget.AppWidgetManager
+import android.appwidget.AppWidgetProvider
 import android.content.Context
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.booleanPreferencesKey
-import androidx.glance.*
-import androidx.glance.action.clickable
-import androidx.glance.appwidget.GlanceAppWidget
-import androidx.glance.appwidget.action.ActionCallback
-import androidx.glance.appwidget.action.actionRunCallback
-import androidx.glance.appwidget.cornerRadius
-import androidx.glance.appwidget.provideContent
-import androidx.glance.appwidget.state.updateAppWidgetState
-import androidx.glance.background
-import androidx.glance.layout.*
-import androidx.glance.state.GlanceStateDefinition
-import androidx.glance.state.PreferencesGlanceStateDefinition
-import androidx.glance.text.*
+import android.content.Intent
+import android.content.SharedPreferences
+import android.graphics.Color
+import android.os.Build
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.style.ForegroundColorSpan
+import android.widget.RemoteViews
+import com.santyfisela.tiemprosa.R
 import com.santyfisela.tiemprosa.data.Quote
 import com.santyfisela.tiemprosa.data.QuoteRepository
 import com.santyfisela.tiemprosa.utils.TextUtils
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 
-class LiteraryClockWidget : GlanceAppWidget() {
-
-    override val stateDefinition: GlanceStateDefinition<*> = PreferencesGlanceStateDefinition
-
-    override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val repository = QuoteRepository(context)
-        val currentQuote = repository.getQuoteForCurrentHour()
-
-        provideContent {
-            GlanceTheme {
-                LiteraryClockContent(
-                    quote = currentQuote
-                )
-            }
-        }
-    }
+class LiteraryClockWidget : AppWidgetProvider() {
 
     companion object {
-        val showDetailsKey = booleanPreferencesKey("show_details")
-    }
-}
+        private const val PREFS_NAME = "com.santyfisela.tiemprosa.widget.LiteraryClockWidget"
+        private const val PREF_PREFIX_KEY = "show_details_"
+        private const val PREF_QUOTE_TEXT_KEY = "quote_text_"
+        private const val PREF_QUOTE_AUTHOR_KEY = "quote_author_"
+        private const val PREF_QUOTE_BOOK_KEY = "quote_book_"
+        private const val PREF_QUOTE_HOUR_KEY = "quote_hour_"
+        const val ACTION_TOGGLE_DETAILS = "com.santyfisela.tiemprosa.widget.ACTION_TOGGLE_DETAILS"
+        const val EXTRA_APP_WIDGET_ID = "app_widget_id"
 
-@Composable
-private fun LiteraryClockContent(
-    quote: Quote?
-) {
-    val prefs = currentState<Preferences>()
-    val showDetails = prefs[LiteraryClockWidget.showDetailsKey] ?: false
-
-    Column(
-        modifier = GlanceModifier
-            .fillMaxSize()
-            .background(GlanceTheme.colors.surface)
-            .cornerRadius(16.dp)
-            .padding(20.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Column(
-            modifier = GlanceModifier
-                .fillMaxWidth()
-                .background(GlanceTheme.colors.surfaceVariant)
-                .cornerRadius(12.dp)
-                .padding(20.dp)
-                .clickable(actionRunCallback<ToggleDetailsAction>()),
-            horizontalAlignment = Alignment.CenterHorizontally
+        internal fun updateWidgetDisplay(
+            context: Context,
+            appWidgetManager: AppWidgetManager,
+            appWidgetId: Int
         ) {
-            if (quote != null) {
-                val timeInfo = TextUtils.getTimeFromText(quote.text)
-
+            val views = RemoteViews(context.packageName, R.layout.literary_clock_widget)
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val showDetails = prefs.getBoolean(PREF_PREFIX_KEY + appWidgetId, false)
+            
+            val cachedText = prefs.getString(PREF_QUOTE_TEXT_KEY + appWidgetId, null)
+            val cachedAuthor = prefs.getString(PREF_QUOTE_AUTHOR_KEY + appWidgetId, null)
+            val cachedBook = prefs.getString(PREF_QUOTE_BOOK_KEY + appWidgetId, null)
+            
+            var fullText: CharSequence = context.getString(R.string.widget_quote_unavailable)
+            
+            if (cachedText != null && cachedAuthor != null && cachedBook != null) {
+                val currentHour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
+                val currentQuote = Quote(currentHour, cachedText, cachedAuthor, cachedBook)
+                
+                val timeInfo = TextUtils.getTimeFromText(currentQuote.text)
+                val quoteText = currentQuote.text
+                
                 if (timeInfo != null) {
                     val (timeText, timeIndex) = timeInfo
-                    val beforeTime = quote.text.substring(0, timeIndex)
-                    val afterTime = quote.text.substring(timeIndex + timeText.length)
-
-                    Text(
-                        text = quote.text,
-                        style = TextStyle(
-                            fontSize = 16.sp,
-                            color = GlanceTheme.colors.onSurface,
-                            textAlign = TextAlign.Center
-                        ),
-                        modifier = GlanceModifier.padding(bottom = if (showDetails) 16.dp else 0.dp),
-                        maxLines = 5
+                    val spannableString = SpannableString(quoteText)
+                    
+                    val primaryColor = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        try {
+                            context.getColor(android.R.color.system_accent1_600)
+                        } catch (e: Exception) {
+                            Color.parseColor("#1976D2")
+                        }
+                    } else {
+                        Color.parseColor("#1976D2")
+                    }
+                    
+                    spannableString.setSpan(
+                        ForegroundColorSpan(primaryColor),
+                        timeIndex,
+                        timeIndex + timeText.length,
+                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
                     )
+                    spannableString.setSpan(
+                        android.text.style.StyleSpan(android.graphics.Typeface.BOLD),
+                        timeIndex,
+                        timeIndex + timeText.length,
+                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                    )
+                    
+                    fullText = spannableString
                 } else {
-                    Text(
-                        text = quote.text,
-                        style = TextStyle(
-                            fontSize = 16.sp,
-                            color = GlanceTheme.colors.onSurface,
-                            textAlign = TextAlign.Center
-                        ),
-                        modifier = GlanceModifier.padding(bottom = if (showDetails) 16.dp else 0.dp)
-                    )
+                    fullText = quoteText
                 }
 
                 if (showDetails) {
-                    Spacer(modifier = GlanceModifier.height(12.dp))
-
-                    Text(
-                        text = "— ${quote.author}",
-                        style = TextStyle(
-                            fontSize = 14.sp,
-                            color = GlanceTheme.colors.onSurface,
-                            fontWeight = FontWeight.Bold,
-                            textAlign = TextAlign.End
-                        ),
-                        modifier = GlanceModifier.fillMaxWidth()
+                    val baseText = fullText.toString()
+                    val authorText = "\n\n— ${currentQuote.author}"
+                    val bookText = "\n${currentQuote.book}"
+                    val completeText = baseText + authorText + bookText
+                    
+                    val spannableComplete = SpannableString(completeText)
+                    
+                    if (fullText is SpannableString) {
+                        val spans = fullText.getSpans(0, fullText.length, Any::class.java)
+                        for (span in spans) {
+                            val start = fullText.getSpanStart(span)
+                            val end = fullText.getSpanEnd(span)
+                            val flags = fullText.getSpanFlags(span)
+                            spannableComplete.setSpan(span, start, end, flags)
+                        }
+                    }
+                    
+                    val authorStart = baseText.length + 3 
+                    val authorEnd = authorStart + currentQuote.author.length
+                    spannableComplete.setSpan(
+                        android.text.style.StyleSpan(android.graphics.Typeface.BOLD),
+                        authorStart,
+                        authorEnd,
+                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
                     )
-
-                    Text(
-                        text = quote.book,
-                        style = TextStyle(
-                            fontSize = 12.sp,
-                            color = GlanceTheme.colors.onSurfaceVariant,
-                            textAlign = TextAlign.End
-                        ),
-                        modifier = GlanceModifier.fillMaxWidth()
+                    
+                    val bookStart = authorEnd + 1
+                    val bookEnd = bookStart + currentQuote.book.length
+                    spannableComplete.setSpan(
+                        android.text.style.StyleSpan(android.graphics.Typeface.ITALIC),
+                        bookStart,
+                        bookEnd,
+                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
                     )
+                    
+                    val dimmedColor = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        try {
+                            context.getColor(android.R.color.system_neutral1_600)
+                        } catch (e: Exception) {
+                            Color.parseColor("#666666")
+                        }
+                    } else {
+                        Color.parseColor("#666666")
+                    }
+                    
+                    spannableComplete.setSpan(
+                        ForegroundColorSpan(dimmedColor),
+                        bookStart,
+                        bookEnd,
+                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                    )
+                    
+                    fullText = spannableComplete
+                } else {
+                    val baseText = fullText.toString()
+                    val instructionText = "\n\nToca la cita para ver detalles"
+                    val completeText = baseText + instructionText
+                    
+                    val spannableComplete = SpannableString(completeText)
+                    
+                    if (fullText is SpannableString) {
+                        val spans = fullText.getSpans(0, fullText.length, Any::class.java)
+                        for (span in spans) {
+                            val start = fullText.getSpanStart(span)
+                            val end = fullText.getSpanEnd(span)
+                            val flags = fullText.getSpanFlags(span)
+                            spannableComplete.setSpan(span, start, end, flags)
+                        }
+                    }
+                    
+                    val instructionStart = baseText.length + 2
+                    val instructionEnd = instructionStart + "Toca la cita para ver detalles".length
+                    
+                    val dimmedColor = Color.parseColor("#666666")
+                    spannableComplete.setSpan(
+                        ForegroundColorSpan(dimmedColor),
+                        instructionStart,
+                        instructionEnd,
+                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                    )
+                    spannableComplete.setSpan(
+                        android.text.style.RelativeSizeSpan(0.8f),
+                        instructionStart,
+                        instructionEnd,
+                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                    )
+                    
+                    fullText = spannableComplete
                 }
-            } else {
-                Text(
-                    text = "No hay cita disponible para esta hora",
-                    style = TextStyle(
-                        fontSize = 16.sp,
-                        color = GlanceTheme.colors.onSurface,
-                        textAlign = TextAlign.Center
-                    )
+            }
+
+            views.setTextViewText(R.id.widget_quote, fullText)
+
+            val toggleIntent = Intent(context, LiteraryClockWidget::class.java).apply {
+                action = ACTION_TOGGLE_DETAILS
+                putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
+            }
+
+            val pendingIntent = PendingIntent.getBroadcast(
+                context,
+                appWidgetId,
+                toggleIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            views.setOnClickPendingIntent(R.id.widget_quote, pendingIntent)
+
+            appWidgetManager.updateAppWidget(appWidgetId, views)
+        }
+
+        internal fun updateAppWidget(
+            context: Context,
+            appWidgetManager: AppWidgetManager,
+            appWidgetId: Int
+        ) {
+            val views = RemoteViews(context.packageName, R.layout.literary_clock_widget)
+            val repository = QuoteRepository(context)
+
+            GlobalScope.launch(Dispatchers.Main) {
+                val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                val showDetails = prefs.getBoolean(PREF_PREFIX_KEY + appWidgetId, false)
+                
+                val currentHour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
+                val cachedHour = prefs.getInt(PREF_QUOTE_HOUR_KEY + appWidgetId, -1)
+                
+                val currentQuote: Quote? = if (cachedHour != currentHour) {
+                    try {
+                        val newQuote = repository.getQuoteForCurrentHour()
+                        if (newQuote != null) {
+                            prefs.edit().apply {
+                                putString(PREF_QUOTE_TEXT_KEY + appWidgetId, newQuote.text)
+                                putString(PREF_QUOTE_AUTHOR_KEY + appWidgetId, newQuote.author)
+                                putString(PREF_QUOTE_BOOK_KEY + appWidgetId, newQuote.book)
+                                putInt(PREF_QUOTE_HOUR_KEY + appWidgetId, currentHour)
+                                apply()
+                            }
+                        }
+                        newQuote
+                    } catch (e: Exception) {
+                        null
+                    }
+                } else {
+                    val cachedText = prefs.getString(PREF_QUOTE_TEXT_KEY + appWidgetId, null)
+                    val cachedAuthor = prefs.getString(PREF_QUOTE_AUTHOR_KEY + appWidgetId, null)
+                    val cachedBook = prefs.getString(PREF_QUOTE_BOOK_KEY + appWidgetId, null)
+                    
+                    if (cachedText != null && cachedAuthor != null && cachedBook != null) {
+                        Quote(currentHour, cachedText, cachedAuthor, cachedBook)
+                    } else {
+                        try {
+                            repository.getQuoteForCurrentHour()
+                        } catch (e: Exception) {
+                            null
+                        }
+                    }
+                }
+
+                var fullText: CharSequence = context.getString(R.string.widget_quote_unavailable)
+
+                if (currentQuote != null) {
+                    val timeInfo = TextUtils.getTimeFromText(currentQuote.text)
+                    val quoteText = currentQuote.text
+                    
+                    if (timeInfo != null) {
+                        val (timeText, timeIndex) = timeInfo
+                        val spannableString = SpannableString(quoteText)
+                        
+                        val primaryColor = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                            try {
+                                context.getColor(android.R.color.system_accent1_600)
+                            } catch (e: Exception) {
+                                Color.parseColor("#1976D2")
+                            }
+                        } else {
+                            Color.parseColor("#1976D2")
+                        }
+                        
+                        spannableString.setSpan(
+                            ForegroundColorSpan(primaryColor),
+                            timeIndex,
+                            timeIndex + timeText.length,
+                            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                        )
+                        spannableString.setSpan(
+                            android.text.style.StyleSpan(android.graphics.Typeface.BOLD),
+                            timeIndex,
+                            timeIndex + timeText.length,
+                            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                        )
+                        
+                        fullText = spannableString
+                    } else {
+                        fullText = quoteText
+                    }
+
+                    if (showDetails) {
+                        val baseText = fullText.toString()
+                        val authorText = "\n\n— ${currentQuote.author}"
+                        val bookText = "\n${currentQuote.book}"
+                        val completeText = baseText + authorText + bookText
+                        
+                        val spannableComplete = SpannableString(completeText)
+                        
+                        if (fullText is SpannableString) {
+                            val spans = fullText.getSpans(0, fullText.length, Any::class.java)
+                            for (span in spans) {
+                                val start = fullText.getSpanStart(span)
+                                val end = fullText.getSpanEnd(span)
+                                val flags = fullText.getSpanFlags(span)
+                                spannableComplete.setSpan(span, start, end, flags)
+                            }
+                        }
+                        
+                        val authorStart = baseText.length + 3 
+                        val authorEnd = authorStart + currentQuote.author.length
+                        spannableComplete.setSpan(
+                            android.text.style.StyleSpan(android.graphics.Typeface.BOLD),
+                            authorStart,
+                            authorEnd,
+                            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                        )
+                        
+                        val bookStart = authorEnd + 1
+                        val bookEnd = bookStart + currentQuote.book.length
+                        spannableComplete.setSpan(
+                            android.text.style.StyleSpan(android.graphics.Typeface.ITALIC),
+                            bookStart,
+                            bookEnd,
+                            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                        )
+                        
+                        val dimmedColor = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                            try {
+                                context.getColor(android.R.color.system_neutral1_600)
+                            } catch (e: Exception) {
+                                Color.parseColor("#666666")
+                            }
+                        } else {
+                            Color.parseColor("#666666")
+                        }
+                        
+                        spannableComplete.setSpan(
+                            ForegroundColorSpan(dimmedColor),
+                            bookStart,
+                            bookEnd,
+                            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                        )
+                        
+                        fullText = spannableComplete
+                    } else {
+                        val baseText = fullText.toString()
+                        val instructionText = "\n\nToca la cita para ver detalles"
+                        val completeText = baseText + instructionText
+                        
+                        val spannableComplete = SpannableString(completeText)
+                        
+                        if (fullText is SpannableString) {
+                            val spans = fullText.getSpans(0, fullText.length, Any::class.java)
+                            for (span in spans) {
+                                val start = fullText.getSpanStart(span)
+                                val end = fullText.getSpanEnd(span)
+                                val flags = fullText.getSpanFlags(span)
+                                spannableComplete.setSpan(span, start, end, flags)
+                            }
+                        }
+                        
+                        val instructionStart = baseText.length + 2
+                        val instructionEnd = instructionStart + "Toca la cita para ver detalles".length
+                        
+                        val dimmedColor = Color.parseColor("#666666")
+                        spannableComplete.setSpan(
+                            ForegroundColorSpan(dimmedColor),
+                            instructionStart,
+                            instructionEnd,
+                            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                        )
+                        spannableComplete.setSpan(
+                            android.text.style.RelativeSizeSpan(0.8f),
+                            instructionStart,
+                            instructionEnd,
+                            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                        )
+                        
+                        fullText = spannableComplete
+                    }
+                }
+
+                views.setTextViewText(R.id.widget_quote, fullText)
+
+                val toggleIntent = Intent(context, LiteraryClockWidget::class.java).apply {
+                    action = ACTION_TOGGLE_DETAILS
+                    putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
+                }
+
+                val pendingIntent = PendingIntent.getBroadcast(
+                    context,
+                    appWidgetId,
+                    toggleIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
+                views.setOnClickPendingIntent(R.id.widget_quote, pendingIntent)
+
+                appWidgetManager.updateAppWidget(appWidgetId, views)
             }
         }
     }
-}
 
-class ToggleDetailsAction : ActionCallback {
-    override suspend fun onAction(
+    override fun onUpdate(
         context: Context,
-        glanceId: GlanceId,
-        parameters: androidx.glance.action.ActionParameters
+        appWidgetManager: AppWidgetManager,
+        appWidgetIds: IntArray
     ) {
-        updateAppWidgetState(context, PreferencesGlanceStateDefinition, glanceId) { prefs ->
-            val currentShowDetails = prefs[LiteraryClockWidget.showDetailsKey] ?: false
-            prefs.toMutablePreferences().apply {
-                this[LiteraryClockWidget.showDetailsKey] = !currentShowDetails
+        for (appWidgetId in appWidgetIds) {
+            updateAppWidget(context, appWidgetManager, appWidgetId)
+        }
+    }
+
+    override fun onReceive(context: Context?, intent: Intent?) {
+        super.onReceive(context, intent)
+
+        if (context == null || intent == null) return
+
+        val action = intent.action
+        if (ACTION_TOGGLE_DETAILS == action) {
+            val appWidgetId = intent.getIntExtra(
+                AppWidgetManager.EXTRA_APPWIDGET_ID,
+                AppWidgetManager.INVALID_APPWIDGET_ID
+            )
+            if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
+                val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                val currentShowDetails = prefs.getBoolean(PREF_PREFIX_KEY + appWidgetId, false)
+                prefs.edit().putBoolean(PREF_PREFIX_KEY + appWidgetId, !currentShowDetails).apply()
+
+                val appWidgetManager = AppWidgetManager.getInstance(context)
+                updateWidgetDisplay(context, appWidgetManager, appWidgetId)
+            }
+        } else if (AppWidgetManager.ACTION_APPWIDGET_UPDATE == action) {
+            val appWidgetIds = intent.getIntArrayExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS)
+            if (appWidgetIds != null) {
+                val appWidgetManager = AppWidgetManager.getInstance(context)
+                this.onUpdate(context, appWidgetManager, appWidgetIds)
             }
         }
-        LiteraryClockWidget().update(context, glanceId)
+    }
+
+    override fun onDeleted(context: Context, appWidgetIds: IntArray) {
+        for (appWidgetId in appWidgetIds) {
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            prefs.edit().apply {
+                remove(PREF_PREFIX_KEY + appWidgetId)
+                remove(PREF_QUOTE_TEXT_KEY + appWidgetId)
+                remove(PREF_QUOTE_AUTHOR_KEY + appWidgetId)
+                remove(PREF_QUOTE_BOOK_KEY + appWidgetId)
+                remove(PREF_QUOTE_HOUR_KEY + appWidgetId)
+                apply()
+            }
+        }
+        super.onDeleted(context, appWidgetIds)
     }
 }
