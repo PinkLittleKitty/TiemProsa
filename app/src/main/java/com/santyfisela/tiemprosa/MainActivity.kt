@@ -37,7 +37,6 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         
-        // Schedule periodic widget updates
         scheduleWidgetUpdates()
         
         setContent {
@@ -71,21 +70,17 @@ fun highlightTimeInQuote(text: String) = buildAnnotatedString {
     if (timeInfo != null) {
         val (timeText, timeIndex) = timeInfo
         
-        // Add text before the time
         append(text.substring(0, timeIndex))
         
-        // Add highlighted time
         withStyle(style = SpanStyle(fontWeight = FontWeight.Bold, color = Color(0xFF1976D2))) {
             append(timeText)
         }
         
-        // Add remaining text
         val endIndex = timeIndex + timeText.length
         if (endIndex < text.length) {
             append(text.substring(endIndex))
         }
     } else {
-        // If no time pattern found, just append the whole text
         append(text)
     }
 }
@@ -98,7 +93,6 @@ fun LiteraryClockScreen(modifier: Modifier = Modifier) {
     var showDetails by remember { mutableStateOf(false) }
     var currentTime by remember { mutableStateOf("") }
     
-    // Update time and quote every minute
     LaunchedEffect(Unit) {
         while (true) {
             val calendar = Calendar.getInstance()
@@ -106,7 +100,7 @@ fun LiteraryClockScreen(modifier: Modifier = Modifier) {
             val minute = calendar.get(Calendar.MINUTE)
             currentTime = String.format("%02d:%02d", hour, minute)
             currentQuote = repository.getQuoteForCurrentHour()
-            kotlinx.coroutines.delay(60000) // Update every minute
+            kotlinx.coroutines.delay(60000)
         }
     }
     
@@ -118,7 +112,6 @@ fun LiteraryClockScreen(modifier: Modifier = Modifier) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        // Current time display
         Text(
             text = currentTime,
             fontSize = 48.sp,
@@ -127,7 +120,6 @@ fun LiteraryClockScreen(modifier: Modifier = Modifier) {
             modifier = Modifier.padding(bottom = 32.dp)
         )
         
-        // Quote card
         currentQuote?.let { quote ->
             Card(
                 modifier = Modifier
@@ -184,7 +176,6 @@ fun LiteraryClockScreen(modifier: Modifier = Modifier) {
             }
         }
         
-        // Refresh button
         Button(
             onClick = { 
                 currentQuote = repository.getQuoteForCurrentHour()
@@ -194,7 +185,6 @@ fun LiteraryClockScreen(modifier: Modifier = Modifier) {
             Text("Nueva cita")
         }
         
-        // Instructions
         Text(
             text = "Toca la cita para ver detalles",
             fontSize = 12.sp,
