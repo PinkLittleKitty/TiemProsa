@@ -100,7 +100,7 @@ fun LiteraryClockScreen(modifier: Modifier = Modifier) {
             val hour = calendar.get(Calendar.HOUR_OF_DAY)
             val minute = calendar.get(Calendar.MINUTE)
             currentTime = String.format("%02d:%02d", hour, minute)
-            currentQuote = repository.getQuoteForCurrentHour()
+            currentQuote = repository.getQuoteForCurrentTime()
             kotlinx.coroutines.delay(60000)
         }
     }
@@ -183,7 +183,7 @@ fun LiteraryClockScreen(modifier: Modifier = Modifier) {
         ) {
             Button(
                 onClick = { 
-                    currentQuote = repository.getQuoteForCurrentHour()
+                    currentQuote = repository.getQuoteForCurrentTime()
                 }
             ) {
                 Text("Nueva cita")

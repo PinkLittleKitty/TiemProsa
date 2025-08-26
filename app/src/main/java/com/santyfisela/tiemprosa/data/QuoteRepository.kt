@@ -46,13 +46,31 @@ class QuoteRepository(private val context: Context) {
         }
         parts.add(current.toString().trim())
         
-        return if (parts.size >= 4) {
+        return if (parts.size >= 5) {
             Quote(
                 hour = parts[0].toIntOrNull() ?: 0,
-                text = parts[1].trim('"'),
-                author = parts[2].trim('"'),
-                book = parts[3].trim('"')
+                minute = parts[1].toIntOrNull() ?: 0,
+                text = parts[2].trim('"'),
+                author = parts[3].trim('"'),
+                book = parts[4].trim('"')
             )
+        } else null
+    }
+    
+    fun getQuoteForCurrentTime(): Quote? {
+        val calendar = Calendar.getInstance()
+        val currentHour = calendar.get(Calendar.HOUR_OF_DAY)
+        val currentMinute = calendar.get(Calendar.MINUTE)
+        val hour24 = if (currentHour == 0) 24 else currentHour
+        
+        val exactMatches = quotes.filter { it.hour == hour24 && it.minute == currentMinute }
+        if (exactMatches.isNotEmpty()) {
+            return exactMatches.random()
+        }
+        
+        val hourMatches = quotes.filter { it.hour == hour24 }
+        return if (hourMatches.isNotEmpty()) {
+            hourMatches.random()
         } else null
     }
     
@@ -62,6 +80,20 @@ class QuoteRepository(private val context: Context) {
         val quotesForHour = quotes.filter { it.hour == hour24 }
         return if (quotesForHour.isNotEmpty()) {
             quotesForHour.random()
+        } else null
+    }
+    
+    fun getQuoteForTime(hour: Int, minute: Int): Quote? {
+        val hour24 = if (hour == 0) 24 else hour
+        
+        val exactMatches = quotes.filter { it.hour == hour24 && it.minute == minute }
+        if (exactMatches.isNotEmpty()) {
+            return exactMatches.random()
+        }
+        
+        val hourMatches = quotes.filter { it.hour == hour24 }
+        return if (hourMatches.isNotEmpty()) {
+            hourMatches.random()
         } else null
     }
     

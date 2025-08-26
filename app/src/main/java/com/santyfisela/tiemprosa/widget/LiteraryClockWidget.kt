@@ -29,6 +29,7 @@ class LiteraryClockWidget : AppWidgetProvider() {
         private const val PREF_QUOTE_AUTHOR_KEY = "quote_author_"
         private const val PREF_QUOTE_BOOK_KEY = "quote_book_"
         private const val PREF_QUOTE_HOUR_KEY = "quote_hour_"
+        private const val PREF_QUOTE_MINUTE_KEY = "quote_minute_"
         const val ACTION_TOGGLE_DETAILS = "com.santyfisela.tiemprosa.widget.ACTION_TOGGLE_DETAILS"
         const val EXTRA_APP_WIDGET_ID = "app_widget_id"
 
@@ -48,8 +49,10 @@ class LiteraryClockWidget : AppWidgetProvider() {
             var fullText: CharSequence = context.getString(R.string.widget_quote_unavailable)
             
             if (cachedText != null && cachedAuthor != null && cachedBook != null) {
-                val currentHour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
-                val currentQuote = Quote(currentHour, cachedText, cachedAuthor, cachedBook)
+                val calendar = java.util.Calendar.getInstance()
+                val currentHour = calendar.get(java.util.Calendar.HOUR_OF_DAY)
+                val currentMinute = calendar.get(java.util.Calendar.MINUTE)
+                val currentQuote = Quote(currentHour, currentMinute, cachedText, cachedAuthor, cachedBook)
                 
                 val timeInfo = TextUtils.getTimeFromText(currentQuote.text)
                 val quoteText = currentQuote.text
@@ -208,18 +211,22 @@ class LiteraryClockWidget : AppWidgetProvider() {
                 val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                 val showDetails = prefs.getBoolean(PREF_PREFIX_KEY + appWidgetId, false)
                 
-                val currentHour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
+                val calendar = java.util.Calendar.getInstance()
+                val currentHour = calendar.get(java.util.Calendar.HOUR_OF_DAY)
+                val currentMinute = calendar.get(java.util.Calendar.MINUTE)
                 val cachedHour = prefs.getInt(PREF_QUOTE_HOUR_KEY + appWidgetId, -1)
+                val cachedMinute = prefs.getInt(PREF_QUOTE_MINUTE_KEY + appWidgetId, -1)
                 
-                val currentQuote: Quote? = if (cachedHour != currentHour) {
+                val currentQuote: Quote? = if (cachedHour != currentHour || cachedMinute != currentMinute) {
                     try {
-                        val newQuote = repository.getQuoteForCurrentHour()
+                        val newQuote = repository.getQuoteForCurrentTime()
                         if (newQuote != null) {
                             prefs.edit().apply {
                                 putString(PREF_QUOTE_TEXT_KEY + appWidgetId, newQuote.text)
                                 putString(PREF_QUOTE_AUTHOR_KEY + appWidgetId, newQuote.author)
                                 putString(PREF_QUOTE_BOOK_KEY + appWidgetId, newQuote.book)
                                 putInt(PREF_QUOTE_HOUR_KEY + appWidgetId, currentHour)
+                                putInt(PREF_QUOTE_MINUTE_KEY + appWidgetId, currentMinute)
                                 apply()
                             }
                         }
@@ -233,10 +240,10 @@ class LiteraryClockWidget : AppWidgetProvider() {
                     val cachedBook = prefs.getString(PREF_QUOTE_BOOK_KEY + appWidgetId, null)
                     
                     if (cachedText != null && cachedAuthor != null && cachedBook != null) {
-                        Quote(currentHour, cachedText, cachedAuthor, cachedBook)
+                        Quote(currentHour, currentMinute, cachedText, cachedAuthor, cachedBook)
                     } else {
                         try {
-                            repository.getQuoteForCurrentHour()
+                            repository.getQuoteForCurrentTime()
                         } catch (e: Exception) {
                             null
                         }
@@ -440,6 +447,7 @@ class LiteraryClockWidget : AppWidgetProvider() {
                 remove(PREF_QUOTE_AUTHOR_KEY + appWidgetId)
                 remove(PREF_QUOTE_BOOK_KEY + appWidgetId)
                 remove(PREF_QUOTE_HOUR_KEY + appWidgetId)
+                remove(PREF_QUOTE_MINUTE_KEY + appWidgetId)
                 apply()
             }
         }
