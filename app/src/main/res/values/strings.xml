@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">TiemProsa</string>
+    <string name="widget_description">Reloj literario con citas de autores latinoamericanos. Toca para ver detalles.</string>
+</resources>
